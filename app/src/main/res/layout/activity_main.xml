@@ -3,56 +3,137 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="24dp"
-    android:gravity="center_horizontal">
+    android:padding="16dp">
 
-    <TextView
-        android:id="@+id/tvTitle"
-        android:layout_width="wrap_content"
+    <!-- Header & User Info -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="LAN Intercom"
-        android:textSize="24sp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvUsername"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="User: Setting up..."
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvMyIp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="My IP: Detecting..."
+                android:textSize="13sp"
+                android:textColor="#2E7D32" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnChangeName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Edit Name"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Discovered Network Devices Section -->
+    <TextView
+        android:id="@+id/tvDeviceCount"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Devices on Network: 0 (Tap a device to select)"
         android:textStyle="bold"
-        android:layout_marginTop="32dp" />
+        android:textSize="15sp"
+        android:layout_marginTop="12dp" />
 
-    <TextView
-        android:id="@+id/tvMyIp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="My IP: Finding..."
-        android:textSize="16sp"
-        android:textColor="#2E7D32"
-        android:layout_marginTop="16dp" />
+    <ListView
+        android:id="@+id/lvDevices"
+        android:layout_width="match_parent"
+        android:layout_height="140dp"
+        android:background="#F5F5F5"
+        android:layout_marginTop="4dp" />
 
+    <!-- Selected Target & Call Status -->
     <EditText
         android:id="@+id/etTargetIp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Enter peer's IP"
-        android:inputType="number|numberDecimal"
-        android:digits="0123456789."
-        android:layout_marginTop="36dp" />
+        android:hint="Select a device above or type IP"
+        android:inputType="text"
+        android:layout_marginTop="8dp" />
 
     <TextView
         android:id="@+id/tvStatus"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Status: Ready"
         android:textSize="15sp"
-        android:layout_marginTop="16dp" />
+        android:textStyle="bold"
+        android:textColor="#1565C0"
+        android:layout_marginTop="4dp" />
 
-    <Button
-        android:id="@+id/btnCall"
+    <!-- Call Action Buttons -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:text="Connect / Start Call"
-        android:layout_marginTop="32dp" />
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
 
-    <Button
-        android:id="@+id/btnEndCall"
+        <Button
+            android:id="@+id/btnCall"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:text="Call Selected"
+            android:layout_marginEnd="6dp" />
+
+        <Button
+            android:id="@+id/btnEndCall"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:text="End Call"
+            android:enabled="false"
+            android:layout_marginStart="6dp" />
+    </LinearLayout>
+
+    <!-- Local Storage Call Logs Section -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:text="End Call"
-        android:enabled="false"
-        android:layout_marginTop="12dp" />
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="12dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Call Log History (Device Storage)"
+            android:textStyle="bold"
+            android:textSize="15sp" />
+
+        <Button
+            android:id="@+id/btnClearLogs"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Clear Logs"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <ListView
+        android:id="@+id/lvCallLogs"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#FAFAFA"
+        android:layout_marginTop="4dp" />
+
 </LinearLayout>

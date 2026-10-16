@@ -11,25 +11,180 @@ import android.util.Log
 import kotlinx.coroutines.*
 import java.net.DatagramPacket
 import java.net.DatagramSocket
+import java.net.Inet4Address
 import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.NetworkInterface
+import java.util.concurrent.ConcurrentHashMap
+
+data class PeerDevice(
+    val ip: String,
+    val username: String,
+    val lastSeen: Long
+)
 
 class AudioCallManager {
     companion object {
         const val SAMPLE_RATE = 16000
         const val AUDIO_PORT = 50005
+        const val DISCOVERY_PORT = 50006
+        const val SIGNAL_PORT = 50007
     }
 
     private var isCalling = false
     private var sendSocket: DatagramSocket? = null
     private var receiveSocket: DatagramSocket? = null
+    private var discoverySocket: DatagramSocket? = null
+    private var signalSocket: DatagramSocket? = null
+
     private var audioRecord: AudioRecord? = null
     private var audioTrack: AudioTrack? = null
     private var aec: AcousticEchoCanceler? = null
 
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val callScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val networkScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    private val peers = ConcurrentHashMap<String, PeerDevice>()
+
+    fun getLocalIpAddress(): String {
+        try {
+            val interfaces = NetworkInterface.getNetworkInterfaces()
+            while (interfaces.hasMoreElements()) {
+                val networkInterface = interfaces.nextElement()
+                if (!networkInterface.isUp || networkInterface.isLoopback) continue
+                val addresses = networkInterface.inetAddresses
+                while (addresses.hasMoreElements()) {
+                    val addr = addresses.nextElement()
+                    if (addr is Inet4Address && !addr.isLoopbackAddress) {
+                        return addr.hostAddress ?: "0.0.0.0"
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("AudioCallManager", "Error getting local IP", e)
+        }
+        return "0.0.0.0"
+    }
+
+    private fun getBroadcastAddresses(): List<InetAddress> {
+        val list = mutableListOf<InetAddress>()
+        try {
+            list.add(InetAddress.getByName("255.255.255.255"))
+            val interfaces = NetworkInterface.getNetworkInterfaces()
+            while (interfaces.hasMoreElements()) {
+                val networkInterface = interfaces.nextElement()
+                if (!networkInterface.isUp || networkInterface.isLoopback) continue
+                for (interfaceAddress in networkInterface.interfaceAddresses) {
+                    val broadcast = interfaceAddress.broadcast
+                    if (broadcast != null && !list.contains(broadcast)) {
+                        list.add(broadcast)
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+        return list
+    }
+
+    fun startNetworkServices(
+        getUsername: () -> String,
+        onPeersUpdated: (List<PeerDevice>) -> Unit,
+        onSignalReceived: (type: String, senderIp: String, senderName: String) -> Unit
+    ) {
+        // 1. Listen for other devices on the network
+        networkScope.launch {
+            try {
+                discoverySocket = DatagramSocket(null).apply {
+                    reuseAddress = true
+                    broadcast = true
+                    bind(InetSocketAddress(DISCOVERY_PORT))
+                }
+                val buffer = ByteArray(512)
+                while (isActive) {
+                    val packet = DatagramPacket(buffer, buffer.size)
+                    discoverySocket?.receive(packet)
+                    val msg = String(packet.data, 0, packet.length, Charsets.UTF_8)
+                    val senderIp = packet.address.hostAddress ?: continue
+                    val myIp = getLocalIpAddress()
+
+                    if (senderIp != myIp && msg.startsWith("PRESENCE|")) {
+                        val peerName = msg.substringAfter("PRESENCE|").trim().ifEmpty { "Device" }
+                        peers[senderIp] = PeerDevice(senderIp, peerName, System.currentTimeMillis())
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("AudioCallManager", "Discovery receiver error", e)
+            }
+        }
+
+        // 2. Broadcast our presence every 2 seconds & refresh online device list
+        networkScope.launch {
+            val sendSock = DatagramSocket().apply { broadcast = true }
+            while (isActive) {
+                try {
+                    val name = getUsername().ifEmpty { "User" }
+                    val data = "PRESENCE|$name".toByteArray(Charsets.UTF_8)
+                    for (bcast in getBroadcastAddresses()) {
+                        val packet = DatagramPacket(data, data.size, bcast, DISCOVERY_PORT)
+                        sendSock.send(packet)
+                    }
+
+                    val now = System.currentTimeMillis()
+                    val iterator = peers.entries.iterator()
+                    while (iterator.hasNext()) {
+                        val entry = iterator.next()
+                        if (now - entry.value.lastSeen > 8000) {
+                            iterator.remove()
+                        }
+                    }
+
+                    onPeersUpdated(peers.values.sortedBy { it.username.lowercase() })
+                } catch (_: Exception) {}
+                delay(2000)
+            }
+        }
+
+        // 3. Listen for call signals (INVITE, ACCEPT, REJECT, END)
+        networkScope.launch {
+            try {
+                signalSocket = DatagramSocket(null).apply {
+                    reuseAddress = true
+                    bind(InetSocketAddress(SIGNAL_PORT))
+                }
+                val buffer = ByteArray(512)
+                while (isActive) {
+                    val packet = DatagramPacket(buffer, buffer.size)
+                    signalSocket?.receive(packet)
+                    val msg = String(packet.data, 0, packet.length, Charsets.UTF_8)
+                    val senderIp = packet.address.hostAddress ?: continue
+                    val parts = msg.split("|", limit = 2)
+                    if (parts.size == 2) {
+                        onSignalReceived(parts[0], senderIp, parts[1])
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("AudioCallManager", "Signal receiver error", e)
+            }
+        }
+    }
+
+    fun sendSignal(targetIp: String, type: String, myUsername: String) {
+        networkScope.launch {
+            try {
+                val msg = "$type|$myUsername"
+                val data = msg.toByteArray(Charsets.UTF_8)
+                val address = InetAddress.getByName(targetIp)
+                val packet = DatagramPacket(data, data.size, address, SIGNAL_PORT)
+                DatagramSocket().use { sock ->
+                    sock.send(packet)
+                }
+            } catch (e: Exception) {
+                Log.e("AudioCallManager", "Failed to send signal $type", e)
+            }
+        }
+    }
 
     @SuppressLint("MissingPermission")
-    fun startCall(targetIp: String, onStateChanged: (Boolean) -> Unit) {
+    fun startAudioStream(targetIp: String, onStateChanged: (Boolean) -> Unit) {
         if (isCalling) return
         isCalling = true
         onStateChanged(true)
@@ -75,12 +230,15 @@ class AudioCallManager {
                 .build()
 
             sendSocket = DatagramSocket()
-            receiveSocket = DatagramSocket(AUDIO_PORT)
+            receiveSocket = DatagramSocket(null).apply {
+                reuseAddress = true
+                bind(InetSocketAddress(AUDIO_PORT))
+            }
 
             audioRecord?.startRecording()
             audioTrack?.play()
 
-            scope.launch {
+            callScope.launch {
                 val targetAddress = InetAddress.getByName(targetIp)
                 val buffer = ByteArray(bufferSize)
                 while (isCalling && isActive) {
@@ -92,7 +250,7 @@ class AudioCallManager {
                 }
             }
 
-            scope.launch {
+            callScope.launch {
                 val buffer = ByteArray(bufferSize)
                 while (isCalling && isActive) {
                     try {
@@ -105,22 +263,43 @@ class AudioCallManager {
                 }
             }
         } catch (e: Exception) {
-            Log.e("AudioCallManager", "Call error", e)
-            endCall(onStateChanged)
+            Log.e("AudioCallManager", "Audio stream error", e)
+            stopAudioStream(onStateChanged)
         }
     }
 
-    fun endCall(onStateChanged: (Boolean) -> Unit) {
+    fun stopAudioStream(onStateChanged: (Boolean) -> Unit) {
         isCalling = false
-        scope.coroutineContext.cancelChildren()
+        callScope.coroutineContext.cancelChildren()
 
-        try { audioRecord?.stop(); audioRecord?.release() } catch (_: Exception) {}
+        try {
+            audioRecord?.stop()
+            audioRecord?.release()
+        } catch (_: Exception) {}
         audioRecord = null
-        try { audioTrack?.stop(); audioTrack?.release() } catch (_: Exception) {}
+
+        try {
+            audioTrack?.stop()
+            audioTrack?.release()
+        } catch (_: Exception) {}
         audioTrack = null
-        aec?.release(); aec = null
-        sendSocket?.close(); sendSocket = null
-        receiveSocket?.close(); receiveSocket = null
+
+        aec?.release()
+        aec = null
+
+        sendSocket?.close()
+        sendSocket = null
+
+        receiveSocket?.close()
+        receiveSocket = null
+
         onStateChanged(false)
+    }
+
+    fun shutdown() {
+        stopAudioStream {}
+        networkScope.coroutineContext.cancelChildren()
+        discoverySocket?.close()
+        signalSocket?.close()
     }
 }
