@@ -1,139 +1,235 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:background="#0F172A"
     android:padding="16dp">
 
-    <!-- Header & User Info -->
-    <LinearLayout
+    <!-- Top User Profile Card -->
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+        app:cardBackgroundColor="#1E293B"
+        app:cardCornerRadius="20dp"
+        app:cardElevation="4dp"
+        app:strokeColor="#334155"
+        app:strokeWidth="1dp">
 
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:gravity="center_vertical">
 
             <TextView
-                android:id="@+id/tvUsername"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="User: Setting up..."
-                android:textSize="18sp"
+                android:id="@+id/tvAvatarInitial"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:gravity="center"
+                android:text="U"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
                 android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/tvMyIp"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="My IP: Detecting..."
-                android:textSize="13sp"
-                android:textColor="#2E7D32" />
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="14dp">
+
+                <TextView
+                    android:id="@+id/tvUsername"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Setting up..."
+                    android:textColor="#F8FAFC"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvNetworkStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="● Active on Local Network"
+                    android:textColor="#10B981"
+                    android:textSize="12sp"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnChangeName"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:text="Edit Name"
+                android:textSize="12sp"
+                android:textAllCaps="false"
+                android:textColor="#E2E8F0"
+                app:backgroundTint="#334155"
+                app:cornerRadius="20dp" />
         </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
-        <Button
-            android:id="@+id/btnChangeName"
-            android:layout_width="wrap_content"
+    <!-- Call Status & Controls Card -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        app:cardBackgroundColor="#1E293B"
+        app:cardCornerRadius="20dp"
+        app:cardElevation="4dp"
+        app:strokeColor="#334155"
+        app:strokeWidth="1dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Edit Name"
-            android:textSize="12sp" />
-    </LinearLayout>
+            android:orientation="vertical"
+            android:padding="16dp">
 
-    <!-- Discovered Network Devices Section -->
+            <TextView
+                android:id="@+id/tvStatusTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="No Contact Selected"
+                android:textColor="#F8FAFC"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:gravity="center" />
+
+            <TextView
+                android:id="@+id/tvStatusSubtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Tap a person below to start a voice call"
+                android:textColor="#94A3B8"
+                android:textSize="13sp"
+                android:gravity="center"
+                android:layout_marginTop="4dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="14dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCall"
+                    android:layout_width="0dp"
+                    android:layout_height="54dp"
+                    android:layout_weight="1"
+                    android:text="Call"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    app:backgroundTint="#10B981"
+                    app:cornerRadius="27dp"
+                    android:layout_marginEnd="6dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnEndCall"
+                    android:layout_width="0dp"
+                    android:layout_height="54dp"
+                    android:layout_weight="1"
+                    android:text="End Call"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:enabled="false"
+                    app:backgroundTint="#EF4444"
+                    app:cornerRadius="27dp"
+                    android:layout_marginStart="6dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Online People Section -->
     <TextView
         android:id="@+id/tvDeviceCount"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Devices on Network: 0 (Tap a device to select)"
+        android:text="PEOPLE ON NETWORK (0)"
+        android:textColor="#94A3B8"
+        android:textSize="12sp"
         android:textStyle="bold"
-        android:textSize="15sp"
-        android:layout_marginTop="12dp" />
+        android:letterSpacing="0.08"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="6dp" />
 
-    <ListView
-        android:id="@+id/lvDevices"
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
-        android:layout_height="140dp"
-        android:background="#F5F5F5"
-        android:layout_marginTop="4dp" />
+        android:layout_height="155dp"
+        app:cardBackgroundColor="#1E293B"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="2dp"
+        app:strokeColor="#334155"
+        app:strokeWidth="1dp">
 
-    <!-- Selected Target & Call Status -->
-    <EditText
-        android:id="@+id/etTargetIp"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Select a device above or type IP"
-        android:inputType="text"
-        android:layout_marginTop="8dp" />
+        <ListView
+            android:id="@+id/lvDevices"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:divider="@android:color/transparent"
+            android:dividerHeight="6dp"
+            android:padding="8dp"
+            android:clipToPadding="false" />
+    </com.google.android.material.card.MaterialCardView>
 
-    <TextView
-        android:id="@+id/tvStatus"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Status: Ready"
-        android:textSize="15sp"
-        android:textStyle="bold"
-        android:textColor="#1565C0"
-        android:layout_marginTop="4dp" />
-
-    <!-- Call Action Buttons -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="8dp">
-
-        <Button
-            android:id="@+id/btnCall"
-            android:layout_width="0dp"
-            android:layout_height="52dp"
-            android:layout_weight="1"
-            android:text="Call Selected"
-            android:layout_marginEnd="6dp" />
-
-        <Button
-            android:id="@+id/btnEndCall"
-            android:layout_width="0dp"
-            android:layout_height="52dp"
-            android:layout_weight="1"
-            android:text="End Call"
-            android:enabled="false"
-            android:layout_marginStart="6dp" />
-    </LinearLayout>
-
-    <!-- Local Storage Call Logs Section -->
+    <!-- Call History Section -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginTop="12dp">
+        android:layout_marginTop="14dp"
+        android:layout_marginBottom="4dp">
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Call Log History (Device Storage)"
+            android:text="RECENT CALLS"
+            android:textColor="#94A3B8"
+            android:textSize="12sp"
             android:textStyle="bold"
-            android:textSize="15sp" />
+            android:letterSpacing="0.08" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnClearLogs"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Clear Logs"
-            android:textSize="12sp" />
+            android:layout_height="34dp"
+            android:text="Clear History"
+            android:textSize="11sp"
+            android:textAllCaps="false"
+            android:textColor="#94A3B8"
+            app:backgroundTint="#1E293B"
+            app:cornerRadius="17dp" />
     </LinearLayout>
 
-    <ListView
-        android:id="@+id/lvCallLogs"
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="#FAFAFA"
-        android:layout_marginTop="4dp" />
+        app:cardBackgroundColor="#1E293B"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="2dp"
+        app:strokeColor="#334155"
+        app:strokeWidth="1dp">
+
+        <ListView
+            android:id="@+id/lvCallLogs"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:divider="#334155"
+            android:dividerHeight="1dp"
+            android:padding="8dp"
+            android:clipToPadding="false" />
+    </com.google.android.material.card.MaterialCardView>
 
 </LinearLayout>
