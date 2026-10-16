@@ -15,6 +15,7 @@ import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.NetworkInterface
+import java.net.SocketAddress
 import java.util.concurrent.ConcurrentHashMap
 
 data class PeerDevice(
@@ -90,10 +91,9 @@ class AudioCallManager {
         onPeersUpdated: (List<PeerDevice>) -> Unit,
         onSignalReceived: (type: String, senderIp: String, senderName: String) -> Unit
     ) {
-        // 1. Listen for other devices on the network
         networkScope.launch {
             try {
-                discoverySocket = DatagramSocket(null).apply {
+                discoverySocket = DatagramSocket(null as SocketAddress?).apply {
                     reuseAddress = true
                     broadcast = true
                     bind(InetSocketAddress(DISCOVERY_PORT))
@@ -103,7 +103,7 @@ class AudioCallManager {
                     val packet = DatagramPacket(buffer, buffer.size)
                     discoverySocket?.receive(packet)
                     val msg = String(packet.data, 0, packet.length, Charsets.UTF_8)
-                    val senderIp = packet.address.hostAddress ?: continue
+                    val senderIp = packet.address?.hostAddress ?: continue
                     val myIp = getLocalIpAddress()
 
                     if (senderIp != myIp && msg.startsWith("PRESENCE|")) {
@@ -116,7 +116,6 @@ class AudioCallManager {
             }
         }
 
-        // 2. Broadcast our presence every 2 seconds & refresh online device list
         networkScope.launch {
             val sendSock = DatagramSocket().apply { broadcast = true }
             while (isActive) {
@@ -143,10 +142,9 @@ class AudioCallManager {
             }
         }
 
-        // 3. Listen for call signals (INVITE, ACCEPT, REJECT, END)
         networkScope.launch {
             try {
-                signalSocket = DatagramSocket(null).apply {
+                signalSocket = DatagramSocket(null as SocketAddress?).apply {
                     reuseAddress = true
                     bind(InetSocketAddress(SIGNAL_PORT))
                 }
@@ -155,7 +153,7 @@ class AudioCallManager {
                     val packet = DatagramPacket(buffer, buffer.size)
                     signalSocket?.receive(packet)
                     val msg = String(packet.data, 0, packet.length, Charsets.UTF_8)
-                    val senderIp = packet.address.hostAddress ?: continue
+                    val senderIp = packet.address?.hostAddress ?: continue
                     val parts = msg.split("|", limit = 2)
                     if (parts.size == 2) {
                         onSignalReceived(parts[0], senderIp, parts[1])
@@ -230,7 +228,7 @@ class AudioCallManager {
                 .build()
 
             sendSocket = DatagramSocket()
-            receiveSocket = DatagramSocket(null).apply {
+            receiveSocket = DatagramSocket(null as SocketAddress?).apply {
                 reuseAddress = true
                 bind(InetSocketAddress(AUDIO_PORT))
             }
@@ -268,7 +266,7 @@ class AudioCallManager {
         }
     }
 
-    fun stopAudioStream(onStateChanged: (Boolean) -> Unit) {
+    fun stopAudioStream(onStateChanged: ((Boolean) -> Unit)? = null) {
         isCalling = false
         callScope.coroutineContext.cancelChildren()
 
@@ -293,11 +291,11 @@ class AudioCallManager {
         receiveSocket?.close()
         receiveSocket = null
 
-        onStateChanged(false)
+        onStateChanged?.invoke(false)
     }
 
     fun shutdown() {
-        stopAudioStream {}
+        stopAudioStream()
         networkScope.coroutineContext.cancelChildren()
         discoverySocket?.close()
         signalSocket?.close()

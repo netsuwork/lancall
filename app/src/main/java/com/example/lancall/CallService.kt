@@ -15,17 +15,12 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 
-/**
- * Owns the AudioCallManager so discovery, signaling and calls live as long as
- * this service, not as long as the Activity. While a call is active the service
- * is promoted to a foreground service (microphone type) so Android keeps the
- * mic and sockets alive when the app is in the background.
- */
 class CallService : Service() {
 
     companion object {
         private const val CHANNEL_CALL = "lancall_active_call"
         private const val CHANNEL_INCOMING = "lancall_incoming"
+        private const val CHANNEL_CHAT = "lancall_chat"
         private const val NOTIF_CALL = 1
         private const val NOTIF_INCOMING = 2
     }
@@ -36,13 +31,13 @@ class CallService : Service() {
 
     private val binder = LocalBinder()
     val callManager = AudioCallManager()
+    val chatManager by lazy { ChatManager(filesDir) }
 
     @Volatile private var lastPeers: List<PeerDevice> = emptyList()
     @Volatile private var pendingInvite: Triple<String, String, String>? = null
     private var multicastLock: WifiManager.MulticastLock? = null
     private var inForeground = false
 
-    /** Set by the Activity in onStart/onStop. Used to decide whether to show a notification. */
     @Volatile var appVisible = false
 
     @Volatile
@@ -52,7 +47,6 @@ class CallService : Service() {
             value?.invoke(lastPeers)
         }
 
-    /** Receives (type, senderIp, senderName). Setting it replays an invite that arrived while no UI existed. */
     @Volatile
     var signalListener: ((String, String, String) -> Unit)? = null
         set(value) {
@@ -68,6 +62,14 @@ class CallService : Service() {
         super.onCreate()
         createChannels()
         acquireMulticastLock()
+
+        chatManager.start()
+        chatManager.onIncoming = { msg ->
+            if (!appVisible || chatManager.openPeerIp != msg.peerIp) {
+                showMessageNotification(msg)
+            }
+        }
+
         callManager.startNetworkServices(
             getUsername = {
                 getSharedPreferences("lancall_prefs", Context.MODE_PRIVATE)
@@ -86,12 +88,43 @@ class CallService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
 
     override fun onDestroy() {
+        chatManager.stop()
         callManager.shutdown()
         try {
             if (multicastLock?.isHeld == true) multicastLock?.release()
         } catch (_: Exception) {}
         notificationManager().cancel(NOTIF_INCOMING)
         super.onDestroy()
+    }
+
+    fun currentPeers(): List<PeerDevice> = lastPeers
+
+    fun cancelMessageNotification(peerIp: String) {
+        notificationManager().cancel(peerIp.hashCode())
+    }
+
+    private fun showMessageNotification(msg: ChatMessage) {
+        val nm = notificationManager()
+        val intent = Intent(this, ChatActivity::class.java).apply {
+            putExtra(ChatActivity.EXTRA_PEER_IP, msg.peerIp)
+            putExtra(ChatActivity.EXTRA_PEER_NAME, msg.senderName)
+            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        val pi = PendingIntent.getActivity(
+            this,
+            msg.peerIp.hashCode(),
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val n = NotificationCompat.Builder(this, CHANNEL_CHAT)
+            .setSmallIcon(android.R.drawable.sym_action_chat)
+            .setContentTitle(msg.senderName)
+            .setContentText(msg.text)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pi)
+            .setAutoCancel(true)
+            .build()
+        nm.notify(msg.peerIp.hashCode(), n)
     }
 
     // ---------------------------------------------------------------- signals
@@ -107,12 +140,10 @@ class CallService : Service() {
             return
         }
 
-        // No Activity is attached.
         when (type) {
             "INVITE" -> pendingInvite = Triple(type, ip, name)
             "END" -> {
                 pendingInvite = null
-                // The other side hung up while our UI was gone: stop the call here.
                 callManager.stopAudioStream { }
                 onCallEnded()
             }
@@ -135,7 +166,6 @@ class CallService : Service() {
             }
             inForeground = true
         } catch (e: Exception) {
-            // Usually means RECORD_AUDIO was not granted.
             Log.e("CallService", "Could not start foreground service", e)
         }
     }
@@ -159,6 +189,9 @@ class CallService : Service() {
         )
         nm.createNotificationChannel(
             NotificationChannel(CHANNEL_INCOMING, "Incoming calls", NotificationManager.IMPORTANCE_HIGH)
+        )
+        nm.createNotificationChannel(
+            NotificationChannel(CHANNEL_CHAT, "Messages", NotificationManager.IMPORTANCE_HIGH)
         )
     }
 
