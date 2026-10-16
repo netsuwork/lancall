@@ -1,0 +1,2 @@
+rootProject.name = "LAN Call"
+include ':app'

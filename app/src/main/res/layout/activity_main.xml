@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:gravity="center_horizontal">
+
+    <TextView
+        android:id="@+id/tvTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="LAN Intercom"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginTop="32dp" />
+
+    <TextView
+        android:id="@+id/tvMyIp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="My IP: Finding..."
+        android:textSize="16sp"
+        android:textColor="#2E7D32"
+        android:layout_marginTop="16dp" />
+
+    <EditText
+        android:id="@+id/etTargetIp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter peer's IP"
+        android:inputType="number|numberDecimal"
+        android:digits="0123456789."
+        android:layout_marginTop="36dp" />
+
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Status: Ready"
+        android:textSize="15sp"
+        android:layout_marginTop="16dp" />
+
+    <Button
+        android:id="@+id/btnCall"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="Connect / Start Call"
+        android:layout_marginTop="32dp" />
+
+    <Button
+        android:id="@+id/btnEndCall"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="End Call"
+        android:enabled="false"
+        android:layout_marginTop="12dp" />
+</LinearLayout>
