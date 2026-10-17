@@ -359,7 +359,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:hint="Type a message..."
-                android:hintTextColor="#64748B"
+                android:textColorHint="#64748B"
                 android:textColor="#F8FAFC"
                 android:textSize="15sp"
                 android:paddingStart="16dp"
