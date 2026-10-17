@@ -138,7 +138,7 @@ class ChatActivity : AppCompatActivity() {
             tvStatus.setTextColor(Color.parseColor("#94A3B8"))
         } else {
             tvTitle.text = peerName
-            tvStatus.text = "○ Offline — messages may not be delivered"
+            tvStatus.text = "○ Offline - messages may not be delivered"
             tvStatus.setTextColor(Color.parseColor("#64748B"))
         }
     }
@@ -171,7 +171,7 @@ class ChatActivity : AppCompatActivity() {
         if (!m.fromMe) return time
         return when (m.status) {
             ChatManager.STATUS_SENDING -> "$time • Sending…"
-            ChatManager.STATUS_FAILED -> "$time • Not delivered — tap to retry"
+            ChatManager.STATUS_FAILED -> "$time • Not delivered - tap to retry"
             else -> "$time  ✓"
         }
     }
