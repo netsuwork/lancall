@@ -1,11 +1,10 @@
 package com.example.lancall
 
 import android.Manifest
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -14,10 +13,10 @@ import android.graphics.drawable.GradientDrawable
 import android.media.AudioManager
 import android.media.Ringtone
 import android.media.RingtoneManager
-import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
+import android.os.IBinder
 import android.os.Looper
 import android.view.Gravity
 import android.view.View
@@ -26,7 +25,6 @@ import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
@@ -35,77 +33,42 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-data class ChatItem(val fromMe: Boolean, val senderName: String, val text: String, val time: String)
-
 class MainActivity : AppCompatActivity() {
 
-    companion object {
-        private const val CHANNEL_MESSAGES = "lancall_messages"
-        private const val EXTRA_OPEN_CHAT = "extra_open_chat"
-    }
+    private val RECORD_REQ_CODE = 101
 
-    private val callManager = AudioCallManager()
-    private val PERM_REQ_CODE = 101
-
-    private lateinit var layoutMain: LinearLayout
-    private lateinit var layoutChat: LinearLayout
-    private lateinit var layoutIncomingCall: LinearLayout
+    private var service: CallService? = null
+    private lateinit var rootContainer: FrameLayout
+    private lateinit var callScreen: CallScreenView
 
     private lateinit var tvAvatarInitial: TextView
     private lateinit var tvUsername: TextView
     private lateinit var tvNetworkStatus: TextView
-    private lateinit var btnTheme: MaterialButton
-    private lateinit var btnChangeName: MaterialButton
-
     private lateinit var cardStatus: MaterialCardView
     private lateinit var tvStatusTitle: TextView
     private lateinit var tvStatusSubtitle: TextView
-    private lateinit var btnCall: MaterialButton
-    private lateinit var btnOpenChat: MaterialButton
-    private lateinit var btnSpeaker: MaterialButton
-    private lateinit var btnEndCall: MaterialButton
-
     private lateinit var tvDeviceCount: TextView
     private lateinit var lvDevices: ListView
+    private lateinit var btnCall: MaterialButton
+    private lateinit var btnChat: MaterialButton
+    private lateinit var btnEndCall: MaterialButton
+    private lateinit var btnChangeName: MaterialButton
     private lateinit var btnClearLogs: MaterialButton
     private lateinit var lvCallLogs: ListView
 
-    // Chat UI elements
-    private lateinit var btnBackFromChat: TextView
-    private lateinit var tvChatTitle: TextView
-    private lateinit var tvChatSubtitle: TextView
-    private lateinit var btnClearChat: MaterialButton
-    private lateinit var lvChatMessages: ListView
-    private lateinit var etChatMessage: EditText
-    private lateinit var btnSendChat: MaterialButton
-
-    // Incoming Call Screen UI
-    private lateinit var tvCallScreenAvatar: TextView
-    private lateinit var tvCallScreenName: TextView
-    private lateinit var tvCallScreenStatus: TextView
-    private lateinit var btnCallScreenAccept: MaterialButton
-    private lateinit var btnCallScreenDecline: MaterialButton
-
     private val discoveredPeers = mutableListOf<PeerDevice>()
     private val callLogItems = mutableListOf<String>()
-    private val chatMessages = mutableListOf<ChatItem>()
 
     private lateinit var devicesAdapter: BaseAdapter
     private lateinit var logsAdapter: BaseAdapter
-    private lateinit var chatAdapter: BaseAdapter
 
     private var selectedPeer: PeerDevice? = null
-    private var activeChatPeerName: String? = null
-    private var activeChatPeerIp: String? = null
-
     private var activePeerIp: String = ""
     private var activePeerName: String = ""
     private var isOutgoingCall: Boolean = false
     private var callStartTime: Long = 0L
-    private var speakerOn: Boolean = false
 
     private var activeRingtone: Ringtone? = null
-    private var multicastLock: WifiManager.MulticastLock? = null
 
     private val timerHandler = Handler(Looper.getMainLooper())
     private val timerRunnable = object : Runnable {
@@ -114,9 +77,56 @@ class MainActivity : AppCompatActivity() {
                 val elapsed = (System.currentTimeMillis() - callStartTime) / 1000
                 val mins = elapsed / 60
                 val secs = elapsed % 60
-                tvStatusSubtitle.text = String.format(Locale.US, "Connected • %02d:%02d", mins, secs)
+                val formatted = String.format(Locale.US, "Connected • %02d:%02d", mins, secs)
+                tvStatusSubtitle.text = formatted
+                if (callScreen.isShowing) {
+                    callScreen.setStatus(formatted)
+                }
                 timerHandler.postDelayed(this, 1000)
             }
+        }
+    }
+
+    private val chatUpdateListener: (String) -> Unit = {
+        runOnUiThread { devicesAdapter.notifyDataSetChanged() }
+    }
+
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+            val svc = (binder as CallService.LocalBinder).getService()
+            service = svc
+            svc.appVisible = true
+            svc.chatManager.addListener(chatUpdateListener)
+
+            svc.peersListener = { peersList ->
+                runOnUiThread {
+                    val hasIp = svc.callManager.getLocalIpAddress() != "0.0.0.0"
+                    tvNetworkStatus.text = if (hasIp) "● Active on Local Network" else "○ Waiting for Wi-Fi / Hotspot"
+                    tvNetworkStatus.setTextColor(
+                        Color.parseColor(if (hasIp) "#94A3B8" else "#64748B")
+                    )
+
+                    discoveredPeers.clear()
+                    discoveredPeers.addAll(peersList)
+
+                    selectedPeer?.let { current ->
+                        selectedPeer = peersList.find { it.ip == current.ip || it.username == current.username }
+                    }
+
+                    tvDeviceCount.text = "PEOPLE ON NETWORK (${peersList.size})"
+                    devicesAdapter.notifyDataSetChanged()
+                }
+            }
+
+            svc.signalListener = { type, senderIp, senderName ->
+                runOnUiThread {
+                    handleIncomingSignal(type, senderIp, senderName)
+                }
+            }
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            service = null
         }
     }
 
@@ -124,51 +134,46 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        layoutMain = findViewById(R.id.layoutMain)
-        layoutChat = findViewById(R.id.layoutChat)
-        layoutIncomingCall = findViewById(R.id.layoutIncomingCall)
-
+        rootContainer = findViewById(R.id.rootContainer)
         tvAvatarInitial = findViewById(R.id.tvAvatarInitial)
         tvUsername = findViewById(R.id.tvUsername)
         tvNetworkStatus = findViewById(R.id.tvNetworkStatus)
-        btnTheme = findViewById(R.id.btnTheme)
-        btnChangeName = findViewById(R.id.btnChangeName)
-
         cardStatus = findViewById(R.id.cardStatus)
         tvStatusTitle = findViewById(R.id.tvStatusTitle)
         tvStatusSubtitle = findViewById(R.id.tvStatusSubtitle)
-        btnCall = findViewById(R.id.btnCall)
-        btnOpenChat = findViewById(R.id.btnOpenChat)
-        btnSpeaker = findViewById(R.id.btnSpeaker)
-        btnEndCall = findViewById(R.id.btnEndCall)
-
         tvDeviceCount = findViewById(R.id.tvDeviceCount)
         lvDevices = findViewById(R.id.lvDevices)
+        btnCall = findViewById(R.id.btnCall)
+        btnChat = findViewById(R.id.btnChat)
+        btnEndCall = findViewById(R.id.btnEndCall)
+        btnChangeName = findViewById(R.id.btnChangeName)
         btnClearLogs = findViewById(R.id.btnClearLogs)
         lvCallLogs = findViewById(R.id.lvCallLogs)
 
-        btnBackFromChat = findViewById(R.id.btnBackFromChat)
-        tvChatTitle = findViewById(R.id.tvChatTitle)
-        tvChatSubtitle = findViewById(R.id.tvChatSubtitle)
-        btnClearChat = findViewById(R.id.btnClearChat)
-        lvChatMessages = findViewById(R.id.lvChatMessages)
-        etChatMessage = findViewById(R.id.etChatMessage)
-        btnSendChat = findViewById(R.id.btnSendChat)
+        tvAvatarInitial.background = createCircleDrawable("#475569")
 
-        tvCallScreenAvatar = findViewById(R.id.tvCallScreenAvatar)
-        tvCallScreenName = findViewById(R.id.tvCallScreenName)
-        tvCallScreenStatus = findViewById(R.id.tvCallScreenStatus)
-        btnCallScreenAccept = findViewById(R.id.btnCallScreenAccept)
-        btnCallScreenDecline = findViewById(R.id.btnCallScreenDecline)
+        callScreen = CallScreenView(this).apply {
+            onAccept = { acceptIncomingCall() }
+            onDecline = { declineIncomingCall() }
+            onEnd = { endCurrentCall() }
+            onSpeakerToggle = { speakerOn -> setSpeakerphone(speakerOn) }
+        }
+        rootContainer.addView(
+            callScreen,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
 
-        tvAvatarInitial.background = createCircleDrawable("#6366F1")
-
-        createNotificationChannel()
         setupAdapters()
-        acquireMulticastLock()
         checkPermissions()
         ensureUsernameSet()
         loadCallLogs()
+
+        val svcIntent = Intent(this, CallService::class.java)
+        startService(svcIntent)
+        bindService(svcIntent, serviceConnection, Context.BIND_AUTO_CREATE)
 
         lvDevices.setOnItemClickListener { _, _, position, _ ->
             if (position in discoveredPeers.indices && callStartTime == 0L && activePeerIp.isEmpty()) {
@@ -185,16 +190,17 @@ class MainActivity : AppCompatActivity() {
             showUsernameDialog(cancelable = true)
         }
 
-        btnTheme.setOnClickListener {
-            showCallScreenThemeDialog()
-        }
-
         btnClearLogs.setOnClickListener {
             clearCallLogs()
         }
 
-        btnSpeaker.setOnClickListener {
-            setSpeakerphone(!speakerOn)
+        btnChat.setOnClickListener {
+            val target = selectedPeer
+            if (target == null) {
+                Toast.makeText(this, "Tap a person from the online list first", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            openChat(target)
         }
 
         btnCall.setOnClickListener {
@@ -203,322 +209,91 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Tap a person from the online list first", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            activePeerName = target.username
-            activePeerIp = target.ip
-            isOutgoingCall = true
-
-            cardStatus.setCardBackgroundColor(ColorStateList.valueOf(Color.parseColor("#312E81")))
-            tvStatusTitle.text = "Calling $activePeerName..."
-            tvStatusSubtitle.text = "Ringing on their device"
-            btnCall.isEnabled = false
-            btnOpenChat.isEnabled = false
-            btnEndCall.isEnabled = true
-
-            callManager.sendSignal(activePeerIp, "INVITE", getSavedUsername())
+            startOutgoingCall(target)
         }
 
         btnEndCall.setOnClickListener {
-            if (activePeerIp.isNotEmpty()) {
-                callManager.sendSignal(activePeerIp, "END", getSavedUsername())
-            }
-            finishActiveCall("Call Ended")
-        }
-
-        // --- Chat Controls ---
-
-        btnOpenChat.setOnClickListener {
-            val target = selectedPeer
-            if (target == null) {
-                Toast.makeText(this, "Tap a person from the online list first", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            openChatMode(target.username, target.ip)
-        }
-
-        btnBackFromChat.setOnClickListener {
-            closeChatMode()
-        }
-
-        btnClearChat.setOnClickListener {
-            val peerName = activeChatPeerName ?: return@setOnClickListener
-            val file = File(filesDir, "chat_${peerName.lowercase()}.txt")
-            if (file.exists()) file.delete()
-            chatMessages.clear()
-            chatAdapter.notifyDataSetChanged()
-        }
-
-        btnSendChat.setOnClickListener {
-            val text = etChatMessage.text.toString().trim()
-            val peerName = activeChatPeerName
-            val peerIp = activeChatPeerIp
-            if (text.isEmpty() || peerName == null || peerIp == null) return@setOnClickListener
-
-            val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-            callManager.sendChatMessage(peerIp, getSavedUsername(), text)
-
-            val item = ChatItem(fromMe = true, senderName = getSavedUsername(), text = text, time = time)
-            chatMessages.add(item)
-            chatAdapter.notifyDataSetChanged()
-            lvChatMessages.setSelection(chatMessages.size - 1)
-            etChatMessage.text.clear()
-
-            saveChatMessage(peerName, "ME|$text|$time")
-        }
-
-        // --- Incoming Call Screen Controls ---
-
-        btnCallScreenAccept.setOnClickListener {
-            acceptIncomingCall()
-        }
-
-        btnCallScreenDecline.setOnClickListener {
-            declineIncomingCall()
-        }
-
-        callManager.startNetworkServices(
-            getUsername = { getSavedUsername() },
-            onPeersUpdated = { peersList ->
-                runOnUiThread {
-                    val hasIp = callManager.getLocalIpAddress() != "0.0.0.0"
-                    tvNetworkStatus.text = if (hasIp) "● Active on Local Network" else "○ Waiting for Wi-Fi / Hotspot"
-                    tvNetworkStatus.setTextColor(
-                        Color.parseColor(if (hasIp) "#10B981" else "#F59E0B")
-                    )
-
-                    discoveredPeers.clear()
-                    discoveredPeers.addAll(peersList)
-
-                    selectedPeer?.let { current ->
-                        selectedPeer = peersList.find { it.ip == current.ip || it.username == current.username }
-                    }
-
-                    tvDeviceCount.text = "PEOPLE ON NETWORK (${peersList.size})"
-                    devicesAdapter.notifyDataSetChanged()
-
-                    activeChatPeerName?.let { chatName ->
-                        val isOnline = peersList.any { it.username == chatName }
-                        tvChatSubtitle.text = if (isOnline) "● Online on LAN" else "○ Offline"
-                        tvChatSubtitle.setTextColor(Color.parseColor(if (isOnline) "#10B981" else "#F59E0B"))
-                    }
-                }
-            },
-            onSignalReceived = { type, senderIp, senderName ->
-                runOnUiThread {
-                    handleIncomingSignal(type, senderIp, senderName)
-                }
-            },
-            onChatMessageReceived = { senderIp, senderName, text ->
-                runOnUiThread {
-                    handleIncomingChatMessage(senderIp, senderName, text)
-                }
-            }
-        )
-
-        handleIntent(intent)
-    }
-
-    override fun onNewIntent(intent: Intent?) {
-        super.onNewIntent(intent)
-        handleIntent(intent)
-    }
-
-    private fun handleIntent(intent: Intent?) {
-        val chatUser = intent?.getStringExtra(EXTRA_OPEN_CHAT)
-        if (!chatUser.isNullOrEmpty()) {
-            val matchedPeer = discoveredPeers.find { it.username.equals(chatUser, ignoreCase = true) }
-            val ip = matchedPeer?.ip ?: ""
-            openChatMode(chatUser, ip)
+            endCurrentCall()
         }
     }
 
-    // --- Chat Mode (Saves history permanently) ---
-
-    private fun openChatMode(peerName: String, peerIp: String) {
-        activeChatPeerName = peerName
-        activeChatPeerIp = peerIp
-        tvChatTitle.text = "Chat with $peerName"
-        val isOnline = discoveredPeers.any { it.username == peerName }
-        tvChatSubtitle.text = if (isOnline) "● Online on LAN" else "○ Offline"
-        tvChatSubtitle.setTextColor(Color.parseColor(if (isOnline) "#10B981" else "#F59E0B"))
-
-        loadChatMessages(peerName)
-        layoutMain.visibility = View.GONE
-        layoutChat.visibility = View.VISIBLE
+    override fun onStart() {
+        super.onStart()
+        service?.appVisible = true
     }
 
-    private fun closeChatMode() {
-        activeChatPeerName = null
-        activeChatPeerIp = null
-        layoutChat.visibility = View.GONE
-        layoutMain.visibility = View.VISIBLE
+    override fun onStop() {
+        super.onStop()
+        service?.appVisible = false
+    }
+
+    override fun onResume() {
+        super.onResume()
         devicesAdapter.notifyDataSetChanged()
     }
 
-    private fun handleIncomingChatMessage(senderIp: String, senderName: String, text: String) {
-        val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-        saveChatMessage(senderName, "PEER|$text|$time")
-
-        if (layoutChat.visibility == View.VISIBLE && activeChatPeerName.equals(senderName, ignoreCase = true)) {
-            chatMessages.add(ChatItem(fromMe = false, senderName = senderName, text = text, time = time))
-            chatAdapter.notifyDataSetChanged()
-            lvChatMessages.setSelection(chatMessages.size - 1)
-        } else {
-            postMessagePushNotification(senderName, text)
-            Toast.makeText(this, "💬 $senderName: $text", Toast.LENGTH_LONG).show()
-            devicesAdapter.notifyDataSetChanged()
+    private fun openChat(peer: PeerDevice) {
+        val intent = Intent(this, ChatActivity::class.java).apply {
+            putExtra(ChatActivity.EXTRA_PEER_IP, peer.ip)
+            putExtra(ChatActivity.EXTRA_PEER_NAME, peer.username)
         }
+        startActivity(intent)
     }
 
-    private fun saveChatMessage(peerUsername: String, line: String) {
-        try {
-            val file = File(filesDir, "chat_${peerUsername.lowercase()}.txt")
-            file.appendText("$line\n")
-        } catch (_: Exception) {}
-    }
+    private fun startOutgoingCall(target: PeerDevice) {
+        val svc = service ?: return
+        activePeerName = target.username
+        activePeerIp = target.ip
+        isOutgoingCall = true
 
-    private fun loadChatMessages(peerUsername: String) {
-        chatMessages.clear()
-        try {
-            val file = File(filesDir, "chat_${peerUsername.lowercase()}.txt")
-            if (file.exists()) {
-                for (line in file.readLines()) {
-                    val parts = line.split("|", limit = 3)
-                    if (parts.size == 3) {
-                        chatMessages.add(
-                            ChatItem(
-                                fromMe = parts[0] == "ME",
-                                senderName = if (parts[0] == "ME") getSavedUsername() else peerUsername,
-                                text = parts[1],
-                                time = parts[2]
-                            )
-                        )
-                    }
-                }
-            }
-        } catch (_: Exception) {}
-        chatAdapter.notifyDataSetChanged()
-        if (chatMessages.isNotEmpty()) lvChatMessages.setSelection(chatMessages.size - 1)
-    }
+        cardStatus.setCardBackgroundColor(ColorStateList.valueOf(Color.parseColor("#334155")))
+        tvStatusTitle.text = "Calling $activePeerName..."
+        tvStatusSubtitle.text = "Ringing on their device"
+        btnCall.isEnabled = false
+        btnEndCall.isEnabled = true
 
-    // --- Push Notifications ---
-
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_MESSAGES,
-                "LAN Messages",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Notifications for incoming LAN chat messages"
-                enableLights(true)
-                enableVibration(true)
-            }
-            val nm = getSystemService(NotificationManager::class.java)
-            nm.createNotificationChannel(channel)
-        }
-    }
-
-    private fun postMessagePushNotification(senderName: String, text: String) {
-        val intent = Intent(this, MainActivity::class.java).apply {
-            putExtra(EXTRA_OPEN_CHAT, senderName)
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val pi = PendingIntent.getActivity(
-            this,
-            senderName.hashCode(),
-            intent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-
-        val notification = NotificationCompat.Builder(this, CHANNEL_MESSAGES)
-            .setSmallIcon(android.R.drawable.sym_action_chat)
-            .setContentTitle(senderName)
-            .setContentText(text)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-            .setContentIntent(pi)
-            .build()
-
-        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        nm.notify(senderName.hashCode(), notification)
-    }
-
-    // --- Customizable Incoming Call Screen ---
-
-    private fun applyCallScreenTheme() {
-        val theme = getSavedCallTheme()
-        val (bgHex, avatarHex) = when (theme) {
-            "Emerald Forest" -> Pair("#064E3B", "#10B981")
-            "Sunset Crimson" -> Pair("#881337", "#F43F5E")
-            "Cyberpunk Amber" -> Pair("#451A03", "#F59E0B")
-            else -> Pair("#1E1B4B", "#6366F1") // Midnight Indigo (Default)
-        }
-        layoutIncomingCall.setBackgroundColor(Color.parseColor(bgHex))
-        tvCallScreenAvatar.background = createCircleDrawable(avatarHex)
-    }
-
-    private fun showCallScreenThemeDialog() {
-        val themes = arrayOf("Midnight Indigo", "Emerald Forest", "Sunset Crimson", "Cyberpunk Amber")
-        val current = getSavedCallTheme()
-        val checkedIndex = themes.indexOf(current).let { if (it >= 0) it else 0 }
-
-        AlertDialog.Builder(this)
-            .setTitle("Customize Incoming Call Screen")
-            .setSingleChoiceItems(themes, checkedIndex) { dialog, which ->
-                val selected = themes[which]
-                getSharedPreferences("lancall_prefs", Context.MODE_PRIVATE)
-                    .edit()
-                    .putString("call_theme", selected)
-                    .apply()
-                Toast.makeText(this, "Call Screen Theme: $selected", Toast.LENGTH_SHORT).show()
-                dialog.dismiss()
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-
-    private fun getSavedCallTheme(): String {
-        return getSharedPreferences("lancall_prefs", Context.MODE_PRIVATE)
-            .getString("call_theme", "Midnight Indigo") ?: "Midnight Indigo"
-    }
-
-    private fun showIncomingCallScreen(callerName: String, callerIp: String) {
-        playRingtone()
-        applyCallScreenTheme()
-        tvCallScreenAvatar.text = callerName.firstOrNull()?.uppercase() ?: "?"
-        tvCallScreenName.text = callerName
-        tvCallScreenStatus.text = "Incoming LAN Voice Call..."
-
-        layoutIncomingCall.visibility = View.VISIBLE
-        layoutIncomingCall.bringToFront()
+        callScreen.showOutgoing(activePeerName)
+        svc.callManager.sendSignal(activePeerIp, "INVITE", getSavedUsername())
     }
 
     private fun acceptIncomingCall() {
+        val svc = service ?: return
         stopRingtone()
-        layoutIncomingCall.visibility = View.GONE
-        callStartTime = System.currentTimeMillis()
+        svc.cancelIncomingNotification()
 
-        cardStatus.setCardBackgroundColor(ColorStateList.valueOf(Color.parseColor("#065F46")))
+        callStartTime = System.currentTimeMillis()
+        cardStatus.setCardBackgroundColor(ColorStateList.valueOf(Color.parseColor("#334155")))
         tvStatusTitle.text = "In Call with $activePeerName"
+        callScreen.showActive(activePeerName)
         timerHandler.post(timerRunnable)
 
-        callManager.sendSignal(activePeerIp, "ACCEPT", getSavedUsername())
-        callManager.startAudioStream(activePeerIp) { inCall ->
+        svc.onCallStarted(activePeerName)
+        svc.callManager.sendSignal(activePeerIp, "ACCEPT", getSavedUsername())
+        svc.callManager.startAudioStream(activePeerIp) { inCall ->
             runOnUiThread { updateCallButtons(inCall) }
         }
     }
 
     private fun declineIncomingCall() {
+        val svc = service ?: return
         stopRingtone()
-        layoutIncomingCall.visibility = View.GONE
+        svc.cancelIncomingNotification()
+        callScreen.hide()
+
         if (activePeerIp.isNotEmpty()) {
-            callManager.sendSignal(activePeerIp, "REJECT", getSavedUsername())
+            svc.callManager.sendSignal(activePeerIp, "REJECT", getSavedUsername())
             saveCallLog("↙ Incoming from $activePeerName", "Declined")
         }
         resetUiAfterCall("Ready")
     }
 
-    // --- Adapters & UI State ---
+    private fun endCurrentCall() {
+        val svc = service
+        if (activePeerIp.isNotEmpty()) {
+            svc?.callManager?.sendSignal(activePeerIp, "END", getSavedUsername())
+        }
+        finishActiveCall("Call Ended")
+    }
 
     private fun setupAdapters() {
         devicesAdapter = object : BaseAdapter() {
@@ -539,18 +314,19 @@ class MainActivity : AppCompatActivity() {
 
                 val peer = discoveredPeers[position]
                 val isSelected = selectedPeer?.ip == peer.ip
+                val unread = service?.chatManager?.unreadCount(peer.ip) ?: 0
 
                 val row = LinearLayout(this@MainActivity).apply {
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.CENTER_VERTICAL
-                    setPadding(28, 20, 28, 20)
+                    setPadding(28, 22, 28, 22)
                     background = GradientDrawable().apply {
                         shape = GradientDrawable.RECTANGLE
                         cornerRadius = 32f
-                        setColor(Color.parseColor(if (isSelected) "#312E81" else "#0F172A"))
+                        setColor(Color.parseColor(if (isSelected) "#334155" else "#0F172A"))
                         setStroke(
-                            if (isSelected) 3 else 1,
-                            Color.parseColor(if (isSelected) "#818CF8" else "#334155")
+                            if (isSelected) 2 else 1,
+                            Color.parseColor(if (isSelected) "#64748B" else "#334155")
                         )
                     }
                 }
@@ -561,7 +337,7 @@ class MainActivity : AppCompatActivity() {
                     textSize = 16f
                     typeface = Typeface.DEFAULT_BOLD
                     gravity = Gravity.CENTER
-                    background = createCircleDrawable(if (isSelected) "#6366F1" else "#059669")
+                    background = createCircleDrawable(if (isSelected) "#475569" else "#334155")
                     layoutParams = LinearLayout.LayoutParams(96, 96)
                 }
 
@@ -580,8 +356,20 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 val subTv = TextView(this@MainActivity).apply {
-                    text = if (isSelected) "Selected • Tap Call or Chat" else "Tap to select"
-                    setTextColor(Color.parseColor(if (isSelected) "#A5B4FC" else "#64748B"))
+                    text = when {
+                        unread > 0 -> "💬 $unread new message${if (unread > 1) "s" else ""}"
+                        isSelected -> "Selected • Tap Call or Chat"
+                        else -> "Tap to select"
+                    }
+                    setTextColor(
+                        Color.parseColor(
+                            when {
+                                unread > 0 -> "#94A3B8"
+                                isSelected -> "#CBD5E1"
+                                else -> "#64748B"
+                            }
+                        )
+                    )
                     textSize = 12f
                 }
 
@@ -590,7 +378,7 @@ class MainActivity : AppCompatActivity() {
 
                 val badge = TextView(this@MainActivity).apply {
                     text = "● Online"
-                    setTextColor(Color.parseColor("#10B981"))
+                    setTextColor(Color.parseColor("#94A3B8"))
                     textSize = 12f
                     typeface = Typeface.DEFAULT_BOLD
                 }
@@ -649,81 +437,39 @@ class MainActivity : AppCompatActivity() {
             }
         }
         lvCallLogs.adapter = logsAdapter
-
-        chatAdapter = object : BaseAdapter() {
-            override fun getCount(): Int = chatMessages.size
-            override fun getItem(position: Int): Any? = chatMessages.getOrNull(position)
-            override fun getItemId(position: Int): Long = position.toLong()
-
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
-                val item = chatMessages[position]
-                val mine = item.fromMe
-
-                val bubble = LinearLayout(this@MainActivity).apply {
-                    orientation = LinearLayout.VERTICAL
-                    setPadding(32, 20, 32, 20)
-                    background = GradientDrawable().apply {
-                        shape = GradientDrawable.RECTANGLE
-                        cornerRadius = 28f
-                        setColor(Color.parseColor(if (mine) "#6366F1" else "#1E293B"))
-                        if (!mine) setStroke(2, Color.parseColor("#334155"))
-                    }
-                }
-
-                val textTv = TextView(this@MainActivity).apply {
-                    text = item.text
-                    setTextColor(Color.WHITE)
-                    textSize = 15f
-                }
-
-                val timeTv = TextView(this@MainActivity).apply {
-                    text = item.time
-                    setTextColor(Color.parseColor(if (mine) "#C7D2FE" else "#94A3B8"))
-                    textSize = 11f
-                    gravity = if (mine) Gravity.END else Gravity.START
-                    setPadding(0, 8, 0, 0)
-                }
-
-                bubble.addView(textTv)
-                bubble.addView(timeTv)
-
-                val container = LinearLayout(this@MainActivity).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    gravity = if (mine) Gravity.END else Gravity.START
-                    setPadding(8, 6, 8, 6)
-                    addView(bubble)
-                }
-                return container
-            }
-        }
-        lvChatMessages.adapter = chatAdapter
     }
 
     private fun handleIncomingSignal(type: String, senderIp: String, senderName: String) {
+        val svc = service ?: return
         when (type) {
             "INVITE" -> {
                 activePeerIp = senderIp
                 activePeerName = senderName
                 isOutgoingCall = false
-                showIncomingCallScreen(senderName, senderIp)
+                playRingtone()
+                callScreen.showIncoming(senderName)
             }
             "ACCEPT" -> {
                 callStartTime = System.currentTimeMillis()
-                cardStatus.setCardBackgroundColor(ColorStateList.valueOf(Color.parseColor("#065F46")))
+                cardStatus.setCardBackgroundColor(ColorStateList.valueOf(Color.parseColor("#334155")))
                 tvStatusTitle.text = "In Call with $senderName"
+                callScreen.showActive(senderName)
                 timerHandler.post(timerRunnable)
-                callManager.startAudioStream(senderIp) { inCall ->
+                svc.onCallStarted(senderName)
+                svc.callManager.startAudioStream(senderIp) { inCall ->
                     runOnUiThread { updateCallButtons(inCall) }
                 }
             }
             "REJECT" -> {
+                callScreen.hide()
                 saveCallLog("↗ Outgoing to $senderName", "Declined")
                 resetUiAfterCall("Call declined by $senderName")
                 Toast.makeText(this, "$senderName declined the call", Toast.LENGTH_SHORT).show()
             }
             "END" -> {
-                layoutIncomingCall.visibility = View.GONE
                 stopRingtone()
+                svc.cancelIncomingNotification()
+                callScreen.hide()
                 finishActiveCall("Call ended by $senderName")
             }
         }
@@ -732,8 +478,8 @@ class MainActivity : AppCompatActivity() {
     private fun finishActiveCall(reason: String) {
         stopRingtone()
         timerHandler.removeCallbacks(timerRunnable)
+        callScreen.hide()
         setSpeakerphone(false)
-        layoutIncomingCall.visibility = View.GONE
 
         val wasConnected = callStartTime > 0L
         val durationSec = if (wasConnected) (System.currentTimeMillis() - callStartTime) / 1000 else 0L
@@ -744,11 +490,12 @@ class MainActivity : AppCompatActivity() {
             saveCallLog("$prefix $activePeerName", outcome)
         }
 
-        callManager.stopAudioStream {
+        service?.onCallEnded()
+        service?.callManager?.stopAudioStream {
             runOnUiThread {
                 resetUiAfterCall(reason)
             }
-        }
+        } ?: resetUiAfterCall(reason)
     }
 
     private fun resetUiAfterCall(statusMessage: String) {
@@ -758,8 +505,6 @@ class MainActivity : AppCompatActivity() {
         activePeerName = ""
         cardStatus.setCardBackgroundColor(ColorStateList.valueOf(Color.parseColor("#1E293B")))
         btnCall.isEnabled = true
-        btnOpenChat.isEnabled = true
-        btnSpeaker.isEnabled = false
         btnEndCall.isEnabled = false
 
         val peer = selectedPeer
@@ -776,23 +521,16 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateCallButtons(inCall: Boolean) {
         btnCall.isEnabled = !inCall
-        btnOpenChat.isEnabled = !inCall
-        btnSpeaker.isEnabled = inCall
         btnEndCall.isEnabled = inCall
     }
 
     @Suppress("DEPRECATION")
     private fun setSpeakerphone(on: Boolean) {
-        speakerOn = on
         try {
             val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
             am.mode = if (on) AudioManager.MODE_IN_COMMUNICATION else AudioManager.MODE_NORMAL
             am.isSpeakerphoneOn = on
         } catch (_: Exception) {}
-        btnSpeaker.text = if (on) "Speaker: On" else "Speaker: Off"
-        btnSpeaker.backgroundTintList = ColorStateList.valueOf(
-            Color.parseColor(if (on) "#6366F1" else "#334155")
-        )
     }
 
     private fun getSavedUsername(): String {
@@ -904,16 +642,6 @@ class MainActivity : AppCompatActivity() {
         activeRingtone = null
     }
 
-    private fun acquireMulticastLock() {
-        try {
-            val wifi = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-            multicastLock = wifi.createMulticastLock("lancall_multicast_lock").apply {
-                setReferenceCounted(true)
-                acquire()
-            }
-        } catch (_: Exception) {}
-    }
-
     private fun checkPermissions() {
         val perms = mutableListOf(Manifest.permission.RECORD_AUDIO)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -923,7 +651,7 @@ class MainActivity : AppCompatActivity() {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
         if (missing.isNotEmpty()) {
-            ActivityCompat.requestPermissions(this, missing.toTypedArray(), PERM_REQ_CODE)
+            ActivityCompat.requestPermissions(this, missing.toTypedArray(), RECORD_REQ_CODE)
         }
     }
 
@@ -931,10 +659,12 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         timerHandler.removeCallbacks(timerRunnable)
         stopRingtone()
-        setSpeakerphone(false)
+        service?.chatManager?.removeListener(chatUpdateListener)
+        service?.peersListener = null
+        service?.signalListener = null
         try {
-            if (multicastLock?.isHeld == true) multicastLock?.release()
+            unbindService(serviceConnection)
         } catch (_: Exception) {}
-        callManager.shutdown()
+        service = null
     }
 }

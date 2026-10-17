@@ -6,15 +6,51 @@
     android:layout_height="match_parent"
     android:background="#0F172A">
 
-    <!-- Screen 1: Main Calling & Contact List -->
     <LinearLayout
-        android:id="@+id/layoutMain"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Top Profile Card with Theme Customizer -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingBottom="12dp">
+
+            <ImageView
+                android:id="@+id/ivHeaderLogo"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:src="@drawable/ic_launcher_logo"
+                android:contentDescription="LAN Call Logo" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="LAN CALL"
+                    android:textColor="#F8FAFC"
+                    android:textSize="17sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.06" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Local Area Network Audio &amp; Chat"
+                    android:textColor="#94A3B8"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </LinearLayout>
+
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -62,37 +98,26 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="● Active on Local Network"
-                        android:textColor="#10B981"
+                        android:textColor="#94A3B8"
                         android:textSize="12sp"
                         android:layout_marginTop="2dp" />
                 </LinearLayout>
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnTheme"
-                    android:layout_width="wrap_content"
-                    android:layout_height="40dp"
-                    android:text="Theme"
-                    android:textSize="11sp"
-                    android:textAllCaps="false"
-                    android:textColor="#CBD5E1"
-                    app:backgroundTint="#334155"
-                    app:cornerRadius="20dp"
-                    android:layout_marginEnd="6dp" />
-
-                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnChangeName"
                     android:layout_width="wrap_content"
                     android:layout_height="40dp"
-                    android:text="Name"
-                    android:textSize="11sp"
+                    android:text="Edit Name"
+                    android:textSize="12sp"
                     android:textAllCaps="false"
                     android:textColor="#E2E8F0"
                     app:backgroundTint="#334155"
+                    app:strokeColor="#475569"
+                    app:strokeWidth="1dp"
                     app:cornerRadius="20dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Selected Contact & Call / Chat Controls Card -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardStatus"
             android:layout_width="match_parent"
@@ -139,67 +164,56 @@
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnCall"
                         android:layout_width="0dp"
-                        android:layout_height="52dp"
+                        android:layout_height="54dp"
                         android:layout_weight="1"
                         android:text="Call"
                         android:textSize="14sp"
                         android:textStyle="bold"
                         android:textAllCaps="false"
                         android:textColor="#FFFFFF"
-                        app:backgroundTint="#10B981"
-                        app:cornerRadius="26dp"
-                        android:layout_marginEnd="3dp" />
+                        app:backgroundTint="#475569"
+                        app:strokeColor="#64748B"
+                        app:strokeWidth="1dp"
+                        app:cornerRadius="27dp"
+                        android:layout_marginEnd="4dp" />
 
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnOpenChat"
+                        android:id="@+id/btnChat"
                         android:layout_width="0dp"
-                        android:layout_height="52dp"
+                        android:layout_height="54dp"
                         android:layout_weight="1"
                         android:text="Chat"
                         android:textSize="14sp"
                         android:textStyle="bold"
                         android:textAllCaps="false"
                         android:textColor="#FFFFFF"
-                        app:backgroundTint="#6366F1"
-                        app:cornerRadius="26dp"
-                        android:layout_marginStart="3dp"
-                        android:layout_marginEnd="3dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnSpeaker"
-                        android:layout_width="0dp"
-                        android:layout_height="52dp"
-                        android:layout_weight="1.2"
-                        android:text="Speaker: Off"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:textAllCaps="false"
-                        android:textColor="#E2E8F0"
-                        android:enabled="false"
-                        app:backgroundTint="#334155"
-                        app:cornerRadius="26dp"
-                        android:layout_marginStart="3dp"
-                        android:layout_marginEnd="3dp" />
+                        app:backgroundTint="#475569"
+                        app:strokeColor="#64748B"
+                        app:strokeWidth="1dp"
+                        app:cornerRadius="27dp"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="4dp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnEndCall"
                         android:layout_width="0dp"
-                        android:layout_height="52dp"
+                        android:layout_height="54dp"
                         android:layout_weight="1"
-                        android:text="End"
+                        android:text="End Call"
                         android:textSize="14sp"
                         android:textStyle="bold"
                         android:textAllCaps="false"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#94A3B8"
                         android:enabled="false"
-                        app:backgroundTint="#EF4444"
-                        app:cornerRadius="26dp"
-                        android:layout_marginStart="3dp" />
+                        app:backgroundTint="#334155"
+                        app:strokeColor="#475569"
+                        app:strokeWidth="1dp"
+                        app:cornerRadius="27dp"
+                        android:layout_marginStart="4dp" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Online People Section -->
         <TextView
             android:id="@+id/tvDeviceCount"
             android:layout_width="match_parent"
@@ -214,7 +228,7 @@
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
-            android:layout_height="145dp"
+            android:layout_height="155dp"
             app:cardBackgroundColor="#1E293B"
             app:cardCornerRadius="18dp"
             app:cardElevation="2dp"
@@ -231,7 +245,6 @@
                 android:clipToPadding="false" />
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Call History Section -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -257,8 +270,10 @@
                 android:text="Clear History"
                 android:textSize="11sp"
                 android:textAllCaps="false"
-                android:textColor="#94A3B8"
-                app:backgroundTint="#1E293B"
+                android:textColor="#CBD5E1"
+                app:backgroundTint="#334155"
+                app:strokeColor="#475569"
+                app:strokeWidth="1dp"
                 app:cornerRadius="17dp" />
         </LinearLayout>
 
@@ -283,227 +298,4 @@
         </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
-
-    <!-- Screen 2: Integrated LAN Chat View -->
-    <LinearLayout
-        android:id="@+id/layoutChat"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:background="#0F172A"
-        android:visibility="gone">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="#1E293B"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp">
-
-            <TextView
-                android:id="@+id/btnBackFromChat"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="‹"
-                android:textColor="#F8FAFC"
-                android:textSize="32sp"
-                android:paddingStart="4dp"
-                android:paddingEnd="12dp" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/tvChatTitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Chat with User"
-                    android:textColor="#F8FAFC"
-                    android:textSize="17sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvChatSubtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="● Online on LAN"
-                    android:textColor="#10B981"
-                    android:textSize="12sp" />
-            </LinearLayout>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnClearChat"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:text="Clear"
-                android:textSize="11sp"
-                android:textAllCaps="false"
-                android:textColor="#94A3B8"
-                app:backgroundTint="#334155"
-                app:cornerRadius="18dp" />
-        </LinearLayout>
-
-        <ListView
-            android:id="@+id/lvChatMessages"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:divider="@android:color/transparent"
-            android:dividerHeight="8dp"
-            android:padding="12dp"
-            android:clipToPadding="false"
-            android:transcriptMode="alwaysScroll" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="#1E293B"
-            android:padding="10dp">
-
-            <EditText
-                android:id="@+id/etChatMessage"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="Type a message..."
-                android:textColorHint="#64748B"
-                android:textColor="#F8FAFC"
-                android:textSize="15sp"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:paddingTop="10dp"
-                android:paddingBottom="10dp"
-                android:background="@android:color/transparent" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSendChat"
-                android:layout_width="wrap_content"
-                android:layout_height="44dp"
-                android:text="Send"
-                android:textSize="13sp"
-                android:textAllCaps="false"
-                android:textColor="#FFFFFF"
-                app:backgroundTint="#6366F1"
-                app:cornerRadius="22dp"
-                android:layout_marginStart="8dp" />
-        </LinearLayout>
-    </LinearLayout>
-
-    <!-- Screen 3: Customizable Full-Screen Incoming Call Overlay -->
-    <LinearLayout
-        android:id="@+id/layoutIncomingCall"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:gravity="center_horizontal"
-        android:background="#1E1B4B"
-        android:visibility="gone"
-        android:clickable="true"
-        android:focusable="true">
-
-        <TextView
-            android:id="@+id/tvCallScreenAvatar"
-            android:layout_width="120dp"
-            android:layout_height="120dp"
-            android:gravity="center"
-            android:text="?"
-            android:textColor="#FFFFFF"
-            android:textSize="48sp"
-            android:textStyle="bold"
-            android:layout_marginTop="120dp" />
-
-        <TextView
-            android:id="@+id/tvCallScreenName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Incoming Call"
-            android:textColor="#F8FAFC"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:layout_marginTop="24dp" />
-
-        <TextView
-            android:id="@+id/tvCallScreenStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Incoming LAN Voice Call..."
-            android:textColor="#CBD5E1"
-            android:textSize="15sp"
-            android:layout_marginTop="8dp" />
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:paddingBottom="72dp">
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center_horizontal"
-                android:layout_marginEnd="48dp">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnCallScreenDecline"
-                    android:layout_width="72dp"
-                    android:layout_height="72dp"
-                    android:text="✕"
-                    android:textSize="24sp"
-                    android:textColor="#FFFFFF"
-                    app:backgroundTint="#EF4444"
-                    app:cornerRadius="36dp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Decline"
-                    android:textColor="#CBD5E1"
-                    android:textSize="13sp"
-                    android:layout_marginTop="8dp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center_horizontal"
-                android:layout_marginStart="48dp">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnCallScreenAccept"
-                    android:layout_width="72dp"
-                    android:layout_height="72dp"
-                    android:text="📞"
-                    android:textSize="24sp"
-                    android:textColor="#FFFFFF"
-                    app:backgroundTint="#10B981"
-                    app:cornerRadius="36dp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Accept"
-                    android:textColor="#CBD5E1"
-                    android:textSize="13sp"
-                    android:layout_marginTop="8dp" />
-            </LinearLayout>
-        </LinearLayout>
-    </LinearLayout>
-
 </FrameLayout>
