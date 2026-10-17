@@ -7,6 +7,7 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.media.AudioManager
 import android.media.Ringtone
 import android.media.RingtoneManager
 import android.net.wifi.WifiManager
@@ -42,6 +43,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvDeviceCount: TextView
     private lateinit var lvDevices: ListView
     private lateinit var btnCall: MaterialButton
+    private lateinit var btnSpeaker: MaterialButton
     private lateinit var btnEndCall: MaterialButton
     private lateinit var btnChangeName: MaterialButton
     private lateinit var btnClearLogs: MaterialButton
@@ -58,6 +60,7 @@ class MainActivity : AppCompatActivity() {
     private var activePeerName: String = ""
     private var isOutgoingCall: Boolean = false
     private var callStartTime: Long = 0L
+    private var speakerOn: Boolean = false
 
     private var incomingDialog: AlertDialog? = null
     private var activeRingtone: Ringtone? = null
@@ -89,6 +92,7 @@ class MainActivity : AppCompatActivity() {
         tvDeviceCount = findViewById(R.id.tvDeviceCount)
         lvDevices = findViewById(R.id.lvDevices)
         btnCall = findViewById(R.id.btnCall)
+        btnSpeaker = findViewById(R.id.btnSpeaker)
         btnEndCall = findViewById(R.id.btnEndCall)
         btnChangeName = findViewById(R.id.btnChangeName)
         btnClearLogs = findViewById(R.id.btnClearLogs)
@@ -119,6 +123,10 @@ class MainActivity : AppCompatActivity() {
 
         btnClearLogs.setOnClickListener {
             clearCallLogs()
+        }
+
+        btnSpeaker.setOnClickListener {
+            setSpeakerphone(!speakerOn)
         }
 
         btnCall.setOnClickListener {
@@ -372,6 +380,7 @@ class MainActivity : AppCompatActivity() {
     private fun finishActiveCall(reason: String) {
         stopRingtone()
         timerHandler.removeCallbacks(timerRunnable)
+        setSpeakerphone(false)
 
         val wasConnected = callStartTime > 0L
         val durationSec = if (wasConnected) (System.currentTimeMillis() - callStartTime) / 1000 else 0L
@@ -396,6 +405,7 @@ class MainActivity : AppCompatActivity() {
         activePeerName = ""
         cardStatus.setCardBackgroundColor(ColorStateList.valueOf(Color.parseColor("#1E293B")))
         btnCall.isEnabled = true
+        btnSpeaker.isEnabled = false
         btnEndCall.isEnabled = false
 
         val peer = selectedPeer
@@ -412,10 +422,23 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateCallButtons(inCall: Boolean) {
         btnCall.isEnabled = !inCall
+        btnSpeaker.isEnabled = inCall
         btnEndCall.isEnabled = inCall
     }
 
-    // --- Username Profile ---
+    @Suppress("DEPRECATION")
+    private fun setSpeakerphone(on: Boolean) {
+        speakerOn = on
+        try {
+            val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            am.mode = if (on) AudioManager.MODE_IN_COMMUNICATION else AudioManager.MODE_NORMAL
+            am.isSpeakerphoneOn = on
+        } catch (_: Exception) {}
+        btnSpeaker.text = if (on) "Speaker: On" else "Speaker: Off"
+        btnSpeaker.backgroundTintList = ColorStateList.valueOf(
+            Color.parseColor(if (on) "#6366F1" else "#334155")
+        )
+    }
 
     private fun getSavedUsername(): String {
         val prefs = getSharedPreferences("lancall_prefs", Context.MODE_PRIVATE)
@@ -469,8 +492,6 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    // --- Call Log Storage (Hides any IP addresses) ---
-
     private fun saveCallLog(title: String, outcome: String) {
         try {
             val timestamp = SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault()).format(Date())
@@ -512,8 +533,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // --- Ringtone & Permissions ---
-
     private fun playRingtone() {
         try {
             stopRingtone()
@@ -554,6 +573,7 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         timerHandler.removeCallbacks(timerRunnable)
         stopRingtone()
+        setSpeakerphone(false)
         try {
             if (multicastLock?.isHeld == true) multicastLock?.release()
         } catch (_: Exception) {}

@@ -7,7 +7,6 @@
     android:background="#0F172A"
     android:padding="16dp">
 
-    <!-- Top User Profile Card -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -73,7 +72,6 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Call Status & Controls Card -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardStatus"
         android:layout_width="match_parent"
@@ -105,7 +103,7 @@
                 android:id="@+id/tvStatusSubtitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Tap a person below to call or chat"
+                android:text="Tap a person below to start a voice call"
                 android:textColor="#94A3B8"
                 android:textSize="13sp"
                 android:gravity="center"
@@ -120,7 +118,7 @@
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnCall"
                     android:layout_width="0dp"
-                    android:layout_height="54dp"
+                    android:layout_height="52dp"
                     android:layout_weight="1"
                     android:text="Call"
                     android:textSize="14sp"
@@ -128,28 +126,29 @@
                     android:textAllCaps="false"
                     android:textColor="#FFFFFF"
                     app:backgroundTint="#10B981"
-                    app:cornerRadius="27dp"
+                    app:cornerRadius="26dp"
                     android:layout_marginEnd="4dp" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnChat"
+                    android:id="@+id/btnSpeaker"
                     android:layout_width="0dp"
-                    android:layout_height="54dp"
+                    android:layout_height="52dp"
                     android:layout_weight="1"
-                    android:text="Chat"
-                    android:textSize="14sp"
+                    android:text="Speaker: Off"
+                    android:textSize="13sp"
                     android:textStyle="bold"
                     android:textAllCaps="false"
-                    android:textColor="#FFFFFF"
-                    app:backgroundTint="#6366F1"
-                    app:cornerRadius="27dp"
+                    android:textColor="#E2E8F0"
+                    android:enabled="false"
+                    app:backgroundTint="#334155"
+                    app:cornerRadius="26dp"
                     android:layout_marginStart="4dp"
                     android:layout_marginEnd="4dp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnEndCall"
                     android:layout_width="0dp"
-                    android:layout_height="54dp"
+                    android:layout_height="52dp"
                     android:layout_weight="1"
                     android:text="End Call"
                     android:textSize="14sp"
@@ -158,13 +157,12 @@
                     android:textColor="#FFFFFF"
                     android:enabled="false"
                     app:backgroundTint="#EF4444"
-                    app:cornerRadius="27dp"
+                    app:cornerRadius="26dp"
                     android:layout_marginStart="4dp" />
             </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Online People Section -->
     <TextView
         android:id="@+id/tvDeviceCount"
         android:layout_width="match_parent"
@@ -179,7 +177,7 @@
 
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
-        android:layout_height="155dp"
+        android:layout_height="160dp"
         app:cardBackgroundColor="#1E293B"
         app:cardCornerRadius="18dp"
         app:cardElevation="2dp"
@@ -196,7 +194,6 @@
             android:clipToPadding="false" />
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Call History Section -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
