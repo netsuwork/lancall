@@ -14,6 +14,7 @@
         android:orientation="vertical"
         android:padding="16dp">
 
+        <!-- Top Profile Card with Theme Customizer -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -67,11 +68,23 @@
                 </LinearLayout>
 
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnTheme"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="Theme"
+                    android:textSize="11sp"
+                    android:textAllCaps="false"
+                    android:textColor="#CBD5E1"
+                    app:backgroundTint="#334155"
+                    app:cornerRadius="20dp"
+                    android:layout_marginEnd="6dp" />
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnChangeName"
                     android:layout_width="wrap_content"
                     android:layout_height="40dp"
-                    android:text="Edit Name"
-                    android:textSize="12sp"
+                    android:text="Name"
+                    android:textSize="11sp"
                     android:textAllCaps="false"
                     android:textColor="#E2E8F0"
                     app:backgroundTint="#334155"
@@ -79,6 +92,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Selected Contact & Call / Chat Controls Card -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardStatus"
             android:layout_width="match_parent"
@@ -134,7 +148,7 @@
                         android:textColor="#FFFFFF"
                         app:backgroundTint="#10B981"
                         app:cornerRadius="26dp"
-                        android:layout_marginEnd="4dp" />
+                        android:layout_marginEnd="3dp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnOpenChat"
@@ -148,24 +162,24 @@
                         android:textColor="#FFFFFF"
                         app:backgroundTint="#6366F1"
                         app:cornerRadius="26dp"
-                        android:layout_marginStart="2dp"
-                        android:layout_marginEnd="2dp" />
+                        android:layout_marginStart="3dp"
+                        android:layout_marginEnd="3dp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnSpeaker"
                         android:layout_width="0dp"
                         android:layout_height="52dp"
-                        android:layout_weight="1"
-                        android:text="Speaker"
-                        android:textSize="13sp"
+                        android:layout_weight="1.2"
+                        android:text="Speaker: Off"
+                        android:textSize="12sp"
                         android:textStyle="bold"
                         android:textAllCaps="false"
                         android:textColor="#E2E8F0"
                         android:enabled="false"
                         app:backgroundTint="#334155"
                         app:cornerRadius="26dp"
-                        android:layout_marginStart="2dp"
-                        android:layout_marginEnd="2dp" />
+                        android:layout_marginStart="3dp"
+                        android:layout_marginEnd="3dp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnEndCall"
@@ -180,11 +194,12 @@
                         android:enabled="false"
                         app:backgroundTint="#EF4444"
                         app:cornerRadius="26dp"
-                        android:layout_marginStart="4dp" />
+                        android:layout_marginStart="3dp" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Online People Section -->
         <TextView
             android:id="@+id/tvDeviceCount"
             android:layout_width="match_parent"
@@ -199,7 +214,7 @@
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
-            android:layout_height="150dp"
+            android:layout_height="145dp"
             app:cardBackgroundColor="#1E293B"
             app:cardCornerRadius="18dp"
             app:cardElevation="2dp"
@@ -216,6 +231,7 @@
                 android:clipToPadding="false" />
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Call History Section -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -379,6 +395,114 @@
                 app:backgroundTint="#6366F1"
                 app:cornerRadius="22dp"
                 android:layout_marginStart="8dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Screen 3: Customizable Full-Screen Incoming Call Overlay -->
+    <LinearLayout
+        android:id="@+id/layoutIncomingCall"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:background="#1E1B4B"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true">
+
+        <TextView
+            android:id="@+id/tvCallScreenAvatar"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:gravity="center"
+            android:text="?"
+            android:textColor="#FFFFFF"
+            android:textSize="48sp"
+            android:textStyle="bold"
+            android:layout_marginTop="120dp" />
+
+        <TextView
+            android:id="@+id/tvCallScreenName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Incoming Call"
+            android:textColor="#F8FAFC"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:layout_marginTop="24dp" />
+
+        <TextView
+            android:id="@+id/tvCallScreenStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Incoming LAN Voice Call..."
+            android:textColor="#CBD5E1"
+            android:textSize="15sp"
+            android:layout_marginTop="8dp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:paddingBottom="72dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:layout_marginEnd="48dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCallScreenDecline"
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:text="✕"
+                    android:textSize="24sp"
+                    android:textColor="#FFFFFF"
+                    app:backgroundTint="#EF4444"
+                    app:cornerRadius="36dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Decline"
+                    android:textColor="#CBD5E1"
+                    android:textSize="13sp"
+                    android:layout_marginTop="8dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:layout_marginStart="48dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCallScreenAccept"
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:text="📞"
+                    android:textSize="24sp"
+                    android:textColor="#FFFFFF"
+                    app:backgroundTint="#10B981"
+                    app:cornerRadius="36dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Accept"
+                    android:textColor="#CBD5E1"
+                    android:textSize="13sp"
+                    android:layout_marginTop="8dp" />
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 
