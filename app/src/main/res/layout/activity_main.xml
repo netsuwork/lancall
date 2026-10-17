@@ -12,6 +12,7 @@
         android:orientation="vertical"
         android:padding="16dp">
 
+        <!-- Top App Brand Header with Logo -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -51,6 +52,7 @@
             </LinearLayout>
         </LinearLayout>
 
+        <!-- Top User Profile Card -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -118,6 +120,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Selected Contact & Action Card -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardStatus"
             android:layout_width="match_parent"
@@ -155,6 +158,7 @@
                     android:gravity="center"
                     android:layout_marginTop="4dp" />
 
+                <!-- Gray Action Buttons Row -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -214,6 +218,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Online People Section -->
         <TextView
             android:id="@+id/tvDeviceCount"
             android:layout_width="match_parent"
@@ -245,6 +250,7 @@
                 android:clipToPadding="false" />
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Call History Section -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

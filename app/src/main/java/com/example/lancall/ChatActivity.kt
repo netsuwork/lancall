@@ -138,7 +138,7 @@ class ChatActivity : AppCompatActivity() {
             tvStatus.setTextColor(Color.parseColor("#94A3B8"))
         } else {
             tvTitle.text = peerName
-            tvStatus.text = "○ Offline - messages may not be delivered"
+            tvStatus.text = "○ Offline — messages may not be delivered"
             tvStatus.setTextColor(Color.parseColor("#64748B"))
         }
     }
@@ -171,7 +171,7 @@ class ChatActivity : AppCompatActivity() {
         if (!m.fromMe) return time
         return when (m.status) {
             ChatManager.STATUS_SENDING -> "$time • Sending…"
-            ChatManager.STATUS_FAILED -> "$time • Not delivered - tap to retry"
+            ChatManager.STATUS_FAILED -> "$time • Not delivered — tap to retry"
             else -> "$time  ✓"
         }
     }
@@ -182,6 +182,7 @@ class ChatActivity : AppCompatActivity() {
             setBackgroundColor(Color.parseColor("#0F172A"))
         }
 
+        // Header
         val back = TextView(this).apply {
             text = "‹"
             textSize = 34f
@@ -229,6 +230,7 @@ class ChatActivity : AppCompatActivity() {
             addView(clear)
         }
 
+        // Messages list
         adapter = object : BaseAdapter() {
             override fun getCount(): Int = messages.size
             override fun getItem(position: Int): Any = messages[position]
@@ -330,6 +332,7 @@ class ChatActivity : AppCompatActivity() {
             )
         }
 
+        // Input row with gray Send button
         etMessage = EditText(this).apply {
             hint = "Message"
             setHintTextColor(Color.parseColor("#64748B"))

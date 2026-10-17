@@ -331,8 +331,9 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
+                val avatarInitial = if (peer.username.isNotEmpty()) peer.username.substring(0, 1).uppercase() else "?"
                 val avatar = TextView(this@MainActivity).apply {
-                    text = peer.username.firstOrNull()?.uppercase() ?: "?"
+                    text = avatarInitial
                     setTextColor(Color.WHITE)
                     textSize = 16f
                     typeface = Typeface.DEFAULT_BOLD
@@ -540,7 +541,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateProfileHeader(name: String) {
         tvUsername.text = name
-        tvAvatarInitial.text = name.firstOrNull()?.uppercase() ?: "U"
+        tvAvatarInitial.text = if (name.isNotEmpty()) name.substring(0, 1).uppercase() else "U"
     }
 
     private fun ensureUsernameSet() {
@@ -588,7 +589,7 @@ class MainActivity : AppCompatActivity() {
     private fun saveCallLog(title: String, outcome: String) {
         try {
             val timestamp = SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault()).format(Date())
-            val line = "$title|$outcome • $timestamp\n"
+            val line = "$title|$outcome • " + timestamp + "\n"
             val file = File(filesDir, "call_logs.txt")
             file.appendText(line)
             loadCallLogs()

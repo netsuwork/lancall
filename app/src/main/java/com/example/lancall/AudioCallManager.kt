@@ -89,8 +89,7 @@ class AudioCallManager {
     fun startNetworkServices(
         getUsername: () -> String,
         onPeersUpdated: (List<PeerDevice>) -> Unit,
-        onSignalReceived: (type: String, senderIp: String, senderName: String) -> Unit,
-        onChatMessageReceived: (senderIp: String, senderName: String, text: String) -> Unit
+        onSignalReceived: (type: String, senderIp: String, senderName: String) -> Unit
     ) {
         networkScope.launch {
             try {
@@ -149,16 +148,14 @@ class AudioCallManager {
                     reuseAddress = true
                     bind(InetSocketAddress(SIGNAL_PORT))
                 }
-                val buffer = ByteArray(2048)
+                val buffer = ByteArray(512)
                 while (isActive) {
                     val packet = DatagramPacket(buffer, buffer.size)
                     signalSocket?.receive(packet)
                     val msg = String(packet.data, 0, packet.length, Charsets.UTF_8)
                     val senderIp = packet.address?.hostAddress ?: continue
-                    val parts = msg.split("|", limit = 3)
-                    if (parts[0] == "CHAT" && parts.size == 3) {
-                        onChatMessageReceived(senderIp, parts[1], parts[2])
-                    } else if (parts.size >= 2) {
+                    val parts = msg.split("|", limit = 2)
+                    if (parts.size == 2) {
                         onSignalReceived(parts[0], senderIp, parts[1])
                     }
                 }
@@ -180,22 +177,6 @@ class AudioCallManager {
                 }
             } catch (e: Exception) {
                 Log.e("AudioCallManager", "Failed to send signal $type", e)
-            }
-        }
-    }
-
-    fun sendChatMessage(targetIp: String, myUsername: String, text: String) {
-        networkScope.launch {
-            try {
-                val msg = "CHAT|$myUsername|$text"
-                val data = msg.toByteArray(Charsets.UTF_8)
-                val address = InetAddress.getByName(targetIp)
-                val packet = DatagramPacket(data, data.size, address, SIGNAL_PORT)
-                DatagramSocket().use { sock ->
-                    sock.send(packet)
-                }
-            } catch (e: Exception) {
-                Log.e("AudioCallManager", "Failed to send chat message", e)
             }
         }
     }
